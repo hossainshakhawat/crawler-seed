@@ -1,8 +1,10 @@
 # crawler-seed configuration
 # All values can be overridden by environment variables prefixed with SEED_
-# e.g. SEED_KAFKA_BROKER, SEED_DEPTH, SEED_SEEDS (comma-separated)
+# e.g. SEED_KAFKA_BROKER, SEED_DEPTH, SEED_SEEDS (comma-separated),
+#      SEED_TOPIC_DISCOVERED
 
-kafka_broker: "localhost:9092"
-depth:        0
+kafka_broker:     "localhost:9092"
+depth:            0
+topic_discovered: "discovered-urls"
 seeds:
   - "https://example.com"

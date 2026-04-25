@@ -24,9 +24,10 @@ import (
 )
 
 type config struct {
-	seeds []string
-	kafka string
-	depth int
+	seeds           []string
+	kafka           string
+	depth           int
+	topicDiscovered string
 }
 
 func loadConfig() config {
@@ -49,9 +50,10 @@ func loadConfig() config {
 		seeds = strings.Split(seeds[0], ",")
 	}
 	return config{
-		seeds: seeds,
-		kafka: viper.GetString("kafka_broker"),
-		depth: viper.GetInt("depth"),
+		seeds:           seeds,
+		kafka:           viper.GetString("kafka_broker"),
+		depth:           viper.GetInt("depth"),
+		topicDiscovered: viper.GetString("topic_discovered"),
 	}
 }
 
@@ -84,11 +86,11 @@ func main() {
 			log.Printf("marshal %s: %v", seedURL, err)
 			continue
 		}
-		if err := kafkaconn.Publish(ctx, kafkaClient, events.TopicDiscovered, []byte(seedURL), payload); err != nil {
+		if err := kafkaconn.Publish(ctx, kafkaClient, cfg.topicDiscovered, []byte(seedURL), payload); err != nil {
 			log.Fatalf("publish %s: %v", seedURL, err)
 		}
 		log.Printf("published → %s (depth %d)", seedURL, cfg.depth)
 	}
 
-	log.Printf("done: %d seed(s) published to %s", len(cfg.seeds), events.TopicDiscovered)
+	log.Printf("done: %d seed(s) published to %s", len(cfg.seeds), cfg.topicDiscovered)
 }

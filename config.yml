@@ -1,9 +1,8 @@
 # crawler-seed configuration
 # All values can be overridden by environment variables prefixed with SEED_
-# e.g. SEED_KAFKA_BROKER, SEED_DEPTH
-# Flags (e.g. -kafka, -depth) take the highest precedence and override both
-# environment variables and this file.
-# Note: seed URLs must always be provided via -seed flags or positional arguments.
+# e.g. SEED_KAFKA_BROKER, SEED_DEPTH, SEED_SEEDS (comma-separated)
 
 kafka_broker: "localhost:9092"
 depth:        0
+seeds:
+  - "https://example.com"

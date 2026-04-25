@@ -3,32 +3,17 @@
 //
 // Configuration is loaded in this priority order (highest wins):
 //
-//  1. CLI flags
-//  2. Environment variables  (prefix SEED_, e.g. SEED_KAFKA_BROKER)
-//  3. config.yml             (must be in the working directory)
-//  4. Built-in defaults
+//  1. Environment variables  (prefix SEED_, e.g. SEED_SEEDS, SEED_KAFKA_BROKER)
+//  2. config.yml             (must be in the working directory)
 //
-// Note: seed URLs must always be provided via -seed flags or positional arguments.
-//
-// Usage:
-//
-//	crawler-seed -seed https://example.com [-seed https://other.com] [flags]
-//
-// Flags:
-//
-//	-seed    seed URL (may be repeated)
-//	-kafka   Kafka broker address (default localhost:9092)
-//	-depth   starting crawl depth for seeds (default 0)
+// Seeds are read from the "seeds" key in config.yml (a YAML list) or from the
+// SEED_SEEDS environment variable (comma-separated URLs).
 package main
 
 import (
 	"context"
 	"encoding/json"
-	"flag"
-	"fmt"
 	"log"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/hossainshakhawat/crawler-seed/events"
@@ -36,13 +21,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-type seedList []string
-
-func (s *seedList) String() string     { return strings.Join(*s, ", ") }
-func (s *seedList) Set(v string) error { *s = append(*s, v); return nil }
-
 type config struct {
-	seeds seedList
+	seeds []string
 	kafka string
 	depth int
 }
@@ -51,9 +31,6 @@ func loadConfig() config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-
-	viper.SetDefault("kafka_broker", "localhost:9092")
-	viper.SetDefault("depth", 0)
 
 	viper.SetEnvPrefix("SEED")
 	viper.AutomaticEnv()
@@ -64,19 +41,10 @@ func loadConfig() config {
 		}
 	}
 
-	// Flags override env vars and config.yml; defaults come from Viper
-	// so env vars and config.yml flow through when flags are not set.
-	var seeds seedList
-	kafka := flag.String("kafka", viper.GetString("kafka_broker"), "Kafka broker address")
-	depth := flag.Int("depth", viper.GetInt("depth"), "Starting crawl depth for seed URLs")
-	flag.Var(&seeds, "seed", "Seed URL (may be repeated)")
-	flag.Parse()
-	seeds = append(seeds, flag.Args()...)
-
 	return config{
-		seeds: seeds,
-		kafka: *kafka,
-		depth: *depth,
+		seeds: viper.GetStringSlice("seeds"),
+		kafka: viper.GetString("kafka_broker"),
+		depth: viper.GetInt("depth"),
 	}
 }
 
@@ -86,9 +54,7 @@ func main() {
 	cfg := loadConfig()
 
 	if len(cfg.seeds) == 0 {
-		fmt.Fprintln(os.Stderr, "error: at least one -seed URL is required")
-		flag.Usage()
-		os.Exit(1)
+		log.Fatal("no seed URLs configured: set 'seeds' in config.yml or SEED_SEEDS env var")
 	}
 
 	ctx := context.Background()

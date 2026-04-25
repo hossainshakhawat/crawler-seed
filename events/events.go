@@ -4,13 +4,7 @@ package events
 
 import "time"
 
-// TopicDiscovered is the Kafka topic that carries URLs waiting to be fetched.
-const TopicDiscovered = "discovered-urls"
-
-// TopicCrawled is the Kafka topic that carries fetched page bodies.
-const TopicCrawled = "crawled-urls"
-
-// DiscoveredURL is published to TopicDiscovered whenever a new URL is found.
+// DiscoveredURL carries a URL to be fetched.
 type DiscoveredURL struct {
 	URL        string    `json:"url"`
 	Depth      int       `json:"depth"`
@@ -18,8 +12,7 @@ type DiscoveredURL struct {
 	EnqueuedAt time.Time `json:"enqueued_at"`
 }
 
-// CrawledPage is published to TopicCrawled after a page has been fetched.
-// Body is gzip-compressed to keep Kafka message sizes small.
+// CrawledPage carries a fetched page body. Body is gzip-compressed.
 type CrawledPage struct {
 	URL        string    `json:"url"`
 	FinalURL   string    `json:"final_url"`

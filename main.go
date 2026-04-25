@@ -14,6 +14,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/hossainshakhawat/crawler-seed/events"
@@ -41,8 +43,13 @@ func loadConfig() config {
 		}
 	}
 
+	seeds := viper.GetStringSlice("seeds")
+	// Viper doesn't split comma-separated env vars for slice keys; do it manually.
+	if raw := os.Getenv("SEED_SEEDS"); raw != "" && len(seeds) == 1 && strings.Contains(seeds[0], ",") {
+		seeds = strings.Split(seeds[0], ",")
+	}
 	return config{
-		seeds: viper.GetStringSlice("seeds"),
+		seeds: seeds,
 		kafka: viper.GetString("kafka_broker"),
 		depth: viper.GetInt("depth"),
 	}

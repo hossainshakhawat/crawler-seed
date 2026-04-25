@@ -19,3 +19,9 @@ func New(ctx context.Context, broker string) (*kgo.Client, error) {
 	}
 	return cl, nil
 }
+
+// Publish synchronously produces a single record to Kafka.
+func Publish(ctx context.Context, cl *kgo.Client, topic string, key, value []byte) error {
+	rec := &kgo.Record{Topic: topic, Key: key, Value: value}
+	return cl.ProduceSync(ctx, rec).FirstErr()
+}

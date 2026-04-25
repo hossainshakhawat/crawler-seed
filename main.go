@@ -22,9 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shakhawathossain/crawler-seed/events"
-	"github.com/shakhawathossain/crawler-seed/internal/kafkaconn"
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/hossainshakhawat/crawler-seed/events"
+	"github.com/hossainshakhawat/crawler-seed/internal/kafkaconn"
 )
 
 type seedList []string
@@ -32,17 +31,28 @@ type seedList []string
 func (s *seedList) String() string     { return strings.Join(*s, ", ") }
 func (s *seedList) Set(v string) error { *s = append(*s, v); return nil }
 
+type config struct {
+	seeds seedList
+	kafka string
+	depth int
+}
+
+func parseFlags() config {
+	var cfg config
+	flag.Var(&cfg.seeds, "seed", "Seed URL (may be repeated)")
+	flag.StringVar(&cfg.kafka, "kafka", "localhost:9092", "Kafka broker address")
+	flag.IntVar(&cfg.depth, "depth", 0, "Starting crawl depth for seed URLs")
+	flag.Parse()
+	cfg.seeds = append(cfg.seeds, flag.Args()...)
+	return cfg
+}
+
 func main() {
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
 
-	var seeds seedList
-	flag.Var(&seeds, "seed", "Seed URL (may be repeated)")
-	kafka := flag.String("kafka", "localhost:9092", "Kafka broker address")
-	depth := flag.Int("depth", 0, "Starting crawl depth for seed URLs")
-	flag.Parse()
+	cfg := parseFlags()
 
-	seeds = append(seeds, flag.Args()...)
-	if len(seeds) == 0 {
+	if len(cfg.seeds) == 0 {
 		fmt.Fprintln(os.Stderr, "error: at least one -seed URL is required")
 		flag.Usage()
 		os.Exit(1)
@@ -50,34 +60,29 @@ func main() {
 
 	ctx := context.Background()
 
-	cl, err := kafkaconn.New(ctx, *kafka)
+	kafkaClient, err := kafkaconn.New(ctx, cfg.kafka)
 	if err != nil {
 		log.Fatalf("kafka: %v", err)
 	}
-	defer cl.Close()
+	defer kafkaClient.Close()
 
-	for _, u := range seeds {
-		ev := events.DiscoveredURL{
-			URL:        u,
-			Depth:      *depth,
+	for _, seedURL := range cfg.seeds {
+		event := events.DiscoveredURL{
+			URL:        seedURL,
+			Depth:      cfg.depth,
 			SourceURL:  "",
 			EnqueuedAt: time.Now().UTC(),
 		}
-		val, err := json.Marshal(ev)
+		payload, err := json.Marshal(event)
 		if err != nil {
-			log.Printf("marshal %s: %v", u, err)
+			log.Printf("marshal %s: %v", seedURL, err)
 			continue
 		}
-		rec := &kgo.Record{
-			Topic: events.TopicDiscovered,
-			Key:   []byte(u),
-			Value: val,
+		if err := kafkaconn.Publish(ctx, kafkaClient, events.TopicDiscovered, []byte(seedURL), payload); err != nil {
+			log.Fatalf("publish %s: %v", seedURL, err)
 		}
-		if err := cl.ProduceSync(ctx, rec).FirstErr(); err != nil {
-			log.Fatalf("publish %s: %v", u, err)
-		}
-		log.Printf("published → %s (depth %d)", u, *depth)
+		log.Printf("published → %s (depth %d)", seedURL, cfg.depth)
 	}
 
-	log.Printf("done: %d seed(s) published to %s", len(seeds), events.TopicDiscovered)
+	log.Printf("done: %d seed(s) published to %s", len(cfg.seeds), events.TopicDiscovered)
 }

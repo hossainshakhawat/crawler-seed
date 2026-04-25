@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/shakhawathossain/crawler-seed/events"
+	"github.com/shakhawathossain/crawler-seed/internal/kafkaconn"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -49,15 +50,11 @@ func main() {
 
 	ctx := context.Background()
 
-	cl, err := kgo.NewClient(kgo.SeedBrokers(*kafka))
+	cl, err := kafkaconn.New(ctx, *kafka)
 	if err != nil {
-		log.Fatalf("kafka client: %v", err)
+		log.Fatalf("kafka: %v", err)
 	}
 	defer cl.Close()
-
-	if err := cl.Ping(ctx); err != nil {
-		log.Fatalf("kafka ping: %v", err)
-	}
 
 	for _, u := range seeds {
 		ev := events.DiscoveredURL{

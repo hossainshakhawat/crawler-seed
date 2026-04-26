@@ -2,7 +2,10 @@ module github.com/hossainshakhawat/crawler-seed
 
 go 1.25.0
 
-require github.com/twmb/franz-go v1.20.7
+require (
+	github.com/spf13/viper v1.21.0
+	github.com/twmb/franz-go v1.20.7
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -15,7 +18,6 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/spf13/viper v1.21.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
